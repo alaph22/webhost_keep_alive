@@ -62,41 +62,78 @@ fail_msgs = [
 def login_account(playwright, USER, PWD):
     log(f"🚀 开始登录账号: {USER}")
     try:
+        # 启动浏览器
         browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
 
-        page.goto("https://client.webhostmost.com/login")
-        time.sleep(5)
-        page.get_by_role("button", name="Login").click()
-        #page.get_by_text("Login").click()
-        time.sleep(2)
-        page.get_by_role("textbox", name="Username").fill(USER)
-        time.sleep(2)
-        page.get_by_role("textbox", name="Password").fill(PWD)
+        # 打开登录页面
+        page.goto("https://client.webhostmost.com/login", timeout=60000)
         page.wait_for_load_state("networkidle")
         time.sleep(2)
 
-        success_text = "You are the exclusive owner of the following domains."
-        if page.query_selector(f"text={success_text}"):
-            log(f"✅ 账号 {USER} 登录成功")
-            time.sleep(5)
-        else:
-            failed_msg = None
-            for msg in fail_msgs:
-                if page.query_selector(f"text={msg}"):
-                    failed_msg = msg
+        # 等待邮箱和密码输入框加载
+        page.wait_for_selector("#inputEmail", timeout=30000)
+        page.wait_for_selector("#inputPassword", timeout=30000)
+
+        # 填入登录凭据
+        page.fill("#inputEmail", USER)
+        page.fill("#inputPassword", PWD)
+        time.sleep(1)
+
+        # 提交登录表单
+        # 按钮可能是 "Login"、"Sign in"、"Validate" 等
+        try:
+            page.get_by_role("button", name="Login").click(timeout=5000)
+        except:
+            # 兜底：用常见按钮名尝试
+            for label in ["Sign in", "Validate", "Submit"]:
+                try:
+                    page.get_by_role("button", name=label).click(timeout=3000)
                     break
+                except:
+                    continue
+            else:
+                log("⚠️ 未找到登录按钮，改用 form 提交")
+                page.press("#inputPassword", "Enter")
+
+        # 等待跳转或加载
+        page.wait_for_load_state("networkidle")
+        time.sleep(5)
+
+        # 登录成功验证（常见几种情况）
+        success_signs = [
+            "exclusive owner of the following domains",
+            "My Services",
+            "Client Area",
+            "Dashboard"
+        ]
+        if any(page.query_selector(f"text={sign}") for sign in success_signs):
+            log(f"✅ 账号 {USER} 登录成功")
+        else:
+            # 检测错误信息
+            fail_msgs = [
+                "Invalid login details",
+                "Incorrect username or password",
+                "Login failed",
+                "Your credentials are incorrect"
+            ]
+            failed_msg = next(
+                (msg for msg in fail_msgs if page.query_selector(f"text={msg}")),
+                None
+            )
             if failed_msg:
                 log(f"❌ 账号 {USER} 登录失败: {failed_msg}")
             else:
-                log(f"❌ 账号 {USER} 登录失败: 未知错误")
+                log(f"❌ 账号 {USER} 登录失败: 未检测到成功标识")
 
+        # 清理
         context.close()
         browser.close()
 
     except Exception as e:
         log(f"❌ 账号 {USER} 登录异常: {e}")
+
 
 def run():
     with sync_playwright() as playwright:
