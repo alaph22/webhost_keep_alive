@@ -143,24 +143,26 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
 
                 # === ✅ Step 6: 登录成功后获取倒计时信息 ===
                 # 登录成功后，尝试提取倒计时信息
-try:
-    # 等待包含倒计时的元素出现（最多等待10秒）
-    page.wait_for_selector("text=Time until suspension", timeout=10000)
+                            # 登录成功后，尝试提取倒计时信息
+                try:
+                    # 等待包含倒计时的元素出现（最多等待10秒）
+                    page.wait_for_selector("text=Time until suspension", timeout=10000)
+                
+                    # 获取包含这段文本的完整内容
+                    countdown_elem = page.query_selector("text=Time until suspension")
+                    countdown_text = countdown_elem.text_content().strip() if countdown_elem else ""
+                
+                    # 用正则提取时间段（如“44d 23h 57m 40s”）
+                    import re
+                    match = re.search(r"(\d+d\s+\d+h\s+\d+m\s+\d+s)", countdown_text)
+                    if match:
+                        remaining_time = match.group(1)
+                        log(f"⏱️ 登录后检测到倒计时: {remaining_time}")
+                    else:
+                        log("⚠️ 登录成功，但未检测到倒计时文本")
+                except Exception as e:
+                    log(f"⚠️ 登录成功，但提取倒计时时出错: {e}")
 
-    # 获取包含这段文本的完整内容
-    countdown_elem = page.query_selector("text=Time until suspension")
-    countdown_text = countdown_elem.text_content().strip() if countdown_elem else ""
-
-    # 用正则提取时间段（如“44d 23h 57m 40s”）
-    import re
-    match = re.search(r"(\d+d\s+\d+h\s+\d+m\s+\d+s)", countdown_text)
-    if match:
-        remaining_time = match.group(1)
-        log(f"⏱️ 登录后检测到倒计时: {remaining_time}")
-    else:
-        log("⚠️ 登录成功，但未检测到倒计时文本")
-except Exception as e:
-    log(f"⚠️ 登录成功，但提取倒计时时出错: {e}")
 
 
                 # 清理资源
