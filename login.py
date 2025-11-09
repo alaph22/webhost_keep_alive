@@ -142,22 +142,26 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
                 log(f"✅ 账号 {USER} 登录成功")
 
                 # === ✅ Step 6: 登录成功后获取倒计时信息 ===
-                try:
-                    page.goto("https://client.webhostmost.com/user/security", timeout=60000)
-                    page.wait_for_load_state("networkidle")
-                    time.sleep(2)
+                # 登录成功后，尝试提取倒计时信息
+try:
+    # 等待包含倒计时的元素出现（最多等待10秒）
+    page.wait_for_selector("text=Time until suspension", timeout=10000)
 
-                    # 查找“Time until suspension”字段
-                    text_content = page.content()
-                    match = re.search(r"Time\s*until\s*suspension:\s*([0-9dhms\s]+)", text_content, re.I)
-                    if match:
-                        countdown_text = match.group(1).strip()
-                        log(f"⏱️ 登录后检测到倒计时: {countdown_text}")
-                    else:
-                        log("⚠️ 登录成功，但未找到倒计时字段（可能页面结构变化）")
+    # 获取包含这段文本的完整内容
+    countdown_elem = page.query_selector("text=Time until suspension")
+    countdown_text = countdown_elem.text_content().strip() if countdown_elem else ""
 
-                except Exception as e_countdown:
-                    log(f"⚠️ 获取倒计时信息时出错: {e_countdown}")
+    # 用正则提取时间段（如“44d 23h 57m 40s”）
+    import re
+    match = re.search(r"(\d+d\s+\d+h\s+\d+m\s+\d+s)", countdown_text)
+    if match:
+        remaining_time = match.group(1)
+        log(f"⏱️ 登录后检测到倒计时: {remaining_time}")
+    else:
+        log("⚠️ 登录成功，但未检测到倒计时文本")
+except Exception as e:
+    log(f"⚠️ 登录成功，但提取倒计时时出错: {e}")
+
 
                 # 清理资源
                 context.close()
