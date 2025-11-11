@@ -3,6 +3,7 @@ import time
 import requests
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
+import re  # 确保 re 模块在顶部导入
 
 # -------------------------------
 log_buffer = []
@@ -59,9 +60,10 @@ fail_msgs = [
     "Error with the login: login size should be between 2 and 50 (currently: 1)"
 ]
 
-import re
-import time
-from datetime import datetime
+# 注意：确保 re 模块已在文件顶部导入
+# import re
+# import time
+# from datetime import datetime
 
 def login_account(playwright, USER, PWD, max_retries: int = 2):
     attempt = 0
@@ -141,29 +143,45 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
             if any(sign.lower() in html.lower() for sign in success_signs):
                 log(f"✅ 账号 {USER} 登录成功")
 
-                # === ✅ Step 6: 登录成功后获取倒计时信息 ===
-                # 登录成功后，尝试提取倒计时信息
-                            # 登录成功后，尝试提取倒计时信息
+                # === ✅ Step 6: 登录成功后获取倒计时信息 (已更新支持多语言) ===
                 try:
-                    # 等待包含倒计时的元素出现（最多等待10秒）
-                    page.wait_for_selector("text=Time until suspension", timeout=10000)
-                
+                    # 各种语言的倒计时提示文本
+                    countdown_phrases = [
+                        "Time until suspension",      # 英文 (English)
+                        "Tijd tot opschorting",       # 荷兰文 (Dutch)
+                        "停止までの時間",             # 日文 (Japanese)
+                        "Tiempo hasta la suspensión", # 西班牙文 (Spanish)
+                        "Zeit bis zur Sperrung"       # 德文 (German)
+                    ]
+                    
+                    # 构建不区分大小写的正则表达式
+                    regex_pattern = "|".join(re.escape(t) for t in countdown_phrases)
+                    # 使用 Playwright 的正则表达式文本选择器 ( /.../i )
+                    selector_regex = f"text=/{regex_pattern}/i"
+                    
+                    # 等待包含倒计时特征文本的元素出现（最多等待10秒）
+                    page.wait_for_selector(selector_regex, timeout=10000)
+                    log("🔍 检测到倒计时相关文本元素")
+
                     # 获取包含这段文本的完整内容
-                    countdown_elem = page.query_selector("text=Time until suspension")
+                    countdown_elem = page.query_selector(selector_regex)
                     countdown_text = countdown_elem.text_content().strip() if countdown_elem else ""
-                
+                    
+                    if not countdown_text:
+                        log("⚠️ 未能获取倒计时元素的具体文本")
+                        raise Exception("Element found but text could not be retrieved")
+
                     # 用正则提取时间段（如“44d 23h 57m 40s”）
-                    import re
+                    # 假设时间格式 (d h m s) 在所有语言中都是统一的
                     match = re.search(r"(\d+d\s+\d+h\s+\d+m\s+\d+s)", countdown_text)
                     if match:
                         remaining_time = match.group(1)
                         log(f"⏱️ 登录后检测到倒计时: {remaining_time}")
                     else:
-                        log("⚠️ 登录成功，但未检测到倒计时文本")
+                        log(f"⚠️ 登录成功，检测到文本 '{countdown_text}'，但未匹配到时间格式")
                 except Exception as e:
                     log(f"⚠️ 登录成功，但提取倒计时时出错: {e}")
-
-
+                # === Step 6 结束 ===
 
                 # 清理资源
                 context.close()
