@@ -141,18 +141,20 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
 
                 # === ✅ Step 6: (混合模式：优先并发等待，失败时遍历检查) ===
                 
-                # 各种语言的倒计时提示文本
+                # --- 修改点开始 ---
+                # 各种语言的倒计时提示文本 (根据您的反馈更新了 NL 和 DE)
                 countdown_phrases = {
-                    "EN": "Time until suspension",
-                    "NL": "Tijd tot opschorting",
-                    "JP": "停止までの時間",
-                    "ES": "Tiempo hasta la suspensión",
-                    "DE": "Zeit bis zur Sperrung"
+                    "EN": "Time until suspension",      # 英文 (根据日志，这个不带冒号)
+                    "NL": "Tijd tot schorsing:",       # 荷兰文 (使用您提供的精确字符串)
+                    "DE": "Zeit bis zur Sperrung:",       # 德文 (使用您提供的精确字符串)
+                    "JP": "停止までの時間:",             # 日文 (推测带冒号)
+                    "ES": "Tiempo hasta la suspensión:" # 西班牙文 (推测带冒号)
                 }
+                # --- 修改点结束 ---
                 
                 try:
                     # --- 阶段1: 并发等待 (最高效) ---
-                    log("🔍 正在并发等待 5 种语言的倒计时...")
+                    log(f"🔍 正在并发等待 {len(countdown_phrases)} 种语言的倒计时...")
                     
                     # 构建不区分大小写的正则表达式
                     regex_pattern = "|".join(re.escape(t) for t in countdown_phrases.values())
@@ -181,6 +183,7 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
                     
                     found_in_loop = False
                     for lang, phrase in countdown_phrases.items():
+                        # 使用 re.escape 确保特殊字符(如冒号)被正确处理
                         selector = f"text=/{re.escape(phrase)}/i"
                         elem = page.locator(selector).first
                         
