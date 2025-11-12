@@ -87,7 +87,7 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
                 try:
                     page.wait_for_selector(selector, timeout=5000)
                     page.fill(selector, USER)
-                    log(f"📝 使用字段 {selector} 填入用户名/邮箱")
+         #           log(f"📝 使用字段 {selector} 填入用户名/邮箱")
                     break
                 except:
                     continue
@@ -98,7 +98,7 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
                 try:
                     page.wait_for_selector(selector, timeout=5000)
                     page.fill(selector, PWD)
-                    log(f"🔒 使用字段 {selector} 填入密码")
+ #                   log(f"🔒 使用字段 {selector} 填入密码")
                     break
                 except:
                     continue
@@ -120,7 +120,7 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
             if not submitted:
                 try:
                     page.evaluate("document.querySelector('form')?.submit()")
-                    log("🔘 使用JS提交表单")
+  #                  log("🔘 使用JS提交表单")
                 except:
                     page.press("#inputPassword", "Enter")
                     log("🔘 使用回车键提交")
@@ -155,7 +155,7 @@ def login_account(playwright, USER, PWD, max_retries: int = 2):
                 
                 try:
                     # --- 阶段1: 并发等待 (最高效) ---
-                    log(f"🔍 正在并发等待 {len(countdown_phrases)} 种语言的倒计时...")
+ #                   log(f"🔍 正在并发等待 {len(countdown_phrases)} 种语言的倒计时...")
                     
                     # 构建不区分大小写的正则表达式
                     regex_pattern = "|".join(re.escape(t) for t in countdown_phrases.values())
